@@ -1,0 +1,18 @@
+# Cài MedCLIP riêng (không nằm trong file này): pip install -e ../MedCLIP --no-deps
+# (--no-deps để không bị ghim theo transformers<=4.24.0 quá cũ trong MedCLIP/requirements.txt)
+
+torch>=2.0
+torchvision>=0.15
+transformers>=4.30,<4.40
+timm>=0.9          # dùng cho baseline ViT (tuỳ chọn, backbone="vit_b16")
+scikit-learn>=1.1
+pandas>=1.5
+openpyxl>=3.0       # đọc classification.xlsx
+Pillow>=9.0
+matplotlib>=3.5
+tqdm
+nltk                # medclip/dataset.py import ở module-level, thiếu là `import medclip` lỗi luôn
+requests            # medclip/modeling_medclip.py dùng để tải checkpoint
+wget                # dùng trong MedCLIPModel.from_pretrained() để tải checkpoint pretrain
+ftfy                # package clip cục bộ (CLIP-LoRA/clip/) cần, dùng cho nhiệm vụ 4 (CLIP + LoRA đối chứng)
+regex                # package clip cục bộ cần (BPE tokenizer)

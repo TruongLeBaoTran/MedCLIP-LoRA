@@ -1,0 +1,19 @@
+# Dữ liệu / checkpoint / kết quả sinh ra khi chạy — không commit
+outputs/
+pretrained/
+Dataset/
+*.pt
+*.pth
+
+# Repo tham khảo/vendor — clone riêng theo hướng dẫn ở README mục 5, không
+# đẩy lên GitHub (CLIP-LoRA là AGPLv3, tránh trộn vào repo này)
+MedCLIP/
+CLIP-LoRA/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Cache HuggingFace/torch nếu lỡ tải vào trong repo
+.cache/
