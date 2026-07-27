@@ -89,6 +89,23 @@ CLIP-LoRA gốc chỉ biết gắn LoRA vào `nn.MultiheadAttention` (kiến tr�
 - **Tiền xử lý ảnh**: dùng `PadToSquare` thay vì `RandomResizedCrop`/`CenterCrop` của CLIP-LoRA gốc — lý do thuộc về đặc thù ảnh X-quang, xem mục 3.
 - **Cách chọn checkpoint**: có thêm chế độ `val_best` (tắt được, `LORA_USE_VAL_CHECKPOINT_SELECTION=False` sẽ về đúng 100% protocol gốc) — CLIP-LoRA gốc nạp val nhưng không dùng cho bất kỳ việc gì (`CLIP-LoRA/lora.py:37`, `VALIDATION = False` hardcode). Đây là đánh đổi về phương pháp luận few-shot, không liên quan ảnh y khoa — xem chi tiết ở mục 7.
 
+### 4.3. Cơ chế gộp nhiều prompt/lớp — `max` vs `mean` (`PromptClassifier` gốc MedCLIP)
+
+Mỗi lớp dùng nhiều prompt để mô tả, không phải 1 câu — `BONE_PROMPTS` có 4 câu/lớp (`prompts_bone.py`). MedCLIP gốc (`PromptClassifier`, `MedCLIP/medclip/modeling_medclip.py:247-285`) có sẵn **2 cơ chế** gộp N điểm cosine/lớp thành 1 điểm trước khi phân loại:
+
+| Cơ chế | Công thức gốc (`modeling_medclip.py:273-276`) | Dùng ở |
+|---|---|---|
+| `max` (mặc định, `ensemble=False`) | `cls_sim = torch.max(logits, 1)[0]` | Nhiệm vụ 2 — `pipelines/zeroshot.py`, mặc định `cfg.ZEROSHOT_PROMPT_AGGREGATION="max"` |
+| `mean` (`ensemble=True`) | `cls_sim = torch.mean(logits, 1)` | Nhiệm vụ 3 — `prompts_bone.py::build_text_features()` |
+
+**Nhiệm vụ 2** (zero-shot, không train) dùng `max` — đúng mặc định gốc; đổi sang `mean` được qua `run_zeroshot(aggregation="mean")`. Cần giữ N embedding riêng biệt/lớp (không gộp trước) để so cosine từng prompt rồi mới lấy max — hàm riêng `prompts_bone.py::build_text_features_per_prompt()` phục vụ đúng việc này.
+
+**Nhiệm vụ 3** (LoRA, có train qua text encoder khi `target="text"/"both"`) **bắt buộc dùng `mean`**, không dùng `max`: `max` chỉ lan gradient tới đúng 1/N prompt "thắng" mỗi bước, và "prompt thắng" đổi liên tục khi LoRA đang cập nhật trọng số text encoder → gradient noisy, không ổn định khi train. `mean` lan gradient đều tới cả N prompt mỗi bước, mượt và ổn định suốt vòng lặp train — đây là lý do kỹ thuật, không phải lựa chọn tuỳ ý.
+
+Để tránh tính lại N lần cosine rồi mới trung bình, `build_text_features()` trung bình N embedding trước (1 lần), rồi so cosine 1 lần duy nhất — **không chuẩn hoá lại (renormalize)** vector trung bình đó. Về mặt toán, 2 cách cho ra đúng 1 kết quả (embedding đã unit-norm nên tích vô hướng tuyến tính: `mean_n(ảnh · prompt_n) = ảnh · mean_n(prompt_n)`), chỉ khác hiệu năng tính toán. Nếu renormalize thêm ở bước cuối (sai lầm ban đầu, đã sửa) sẽ lệch khỏi cơ chế gốc — tạo hệ số phóng đại khác nhau tuỳ độ "phân tán" của N prompt mỗi lớp.
+
+Ví dụ số minh hoạ chi tiết (kèm trích dòng code cụ thể) xem `figures/MedCLIP-LoRA_offline.tex` Step 3 và `figures/MedCLIP_online.tex` Step 4–5.
+
 ## 5. Cài đặt
 
 Repo này chỉ chứa code tự viết (`src/`, `notebooks/`) — không kèm 2 repo tham khảo/vendor (`MedCLIP/`, `CLIP-LoRA/`) hay dataset (`Dataset/`), cần tự chuẩn bị trước:

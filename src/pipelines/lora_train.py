@@ -3,8 +3,13 @@ Nhiệm vụ 3 — MedCLIP + LoRA few-shot.
 
 Đóng băng toàn bộ MedCLIP gốc, chỉ train các ma trận LoRA (rank thấp) chèn
 vào Q/K/V của attention. Dùng vài ảnh/lớp (few-shot) lấy từ train split.
-Loss = cross-entropy trên cosine-similarity logits giữa ảnh và text prompt
-từng lớp — không thêm linear head, giữ đúng "bản chất VLM" (xem hoi-dap.md).
+Loss = cross-entropy trên logits giữa ảnh và text prompt từng lớp — không
+thêm linear head, giữ đúng "bản chất VLM" (xem hoi-dap.md). text_features
+(prompts_bone.py::build_text_features) là trung bình N điểm cosine/lớp
+(KHÔNG renormalize sau khi trung bình embedding) — đúng cơ chế
+ensemble=True của PromptClassifier gốc MedCLIP, không còn là cosine
+similarity thuần với 1 vector đã unit-norm nữa (xem docstring của
+build_text_features() để biết vì sao 2 cách tương đương về mặt toán).
 
 Có 2 cách chạy:
 - run_lora_train(): 1 lần chạy, 1 mức shot, 1 seed cố định — dùng để debug nhanh.

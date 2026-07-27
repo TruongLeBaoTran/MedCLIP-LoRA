@@ -82,6 +82,14 @@ BASELINE_LR = 1e-4
 BASELINE_EPOCHS = 15
 
 # ----------------------------------------------------------------------
+# Nhiệm vụ 2 — MedCLIP zero-shot
+# ----------------------------------------------------------------------
+# Cách gộp N điểm cosine/lớp thành 1 điểm/lớp trước khi argmax, khớp
+# PromptClassifier gốc của MedCLIP (medclip/modeling_medclip.py:247-285):
+# "max" = mặc định gốc MedCLIP, "mean" = chế độ ensemble=True gốc.
+ZEROSHOT_PROMPT_AGGREGATION = "max"
+
+# ----------------------------------------------------------------------
 # Nhiệm vụ 3 — MedCLIP + LoRA few-shot
 # ----------------------------------------------------------------------
 # Khớp NGUYÊN VĂN giá trị mặc định của CLIP-LoRA gốc (CLIP-LoRA/run_utils.py:32-40,
